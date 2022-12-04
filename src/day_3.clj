@@ -55,6 +55,25 @@ CrZsJsPPZsGzwwsLwLmpwMDw")
   ;;
   )
 
+;; improve with transcuders (attempt)
+;; see https://dev.solita.fi/2021/10/14/grokking-clojure-transducers.html
+
+(defn solution-1-perf []
+  (apply + (into
+            []
+            (comp
+             (map #(split-at (quot (count %) 2) %))
+             (map common-item)
+             (map item->priority))
+            (split-lines (slurp "./resources/puzzle_3.txt")))))
+
+(comment
+  (time (solution-1))
+  (time (solution-1-perf))
+  ;;
+  )
+
+
 ;; part 2 -----------------------------------------------------
 
 ;; the badge is the only item type carried by all three Elves (a group)
