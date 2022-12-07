@@ -28,31 +28,6 @@ move 1 from 1 to 2")
 ;;
 ;; => [G T Y]
 
-
-(comment
-  (re-matches #"[ \d]+" "   ")
-  (re-matches #"(... ?)+"  "    [P]                 [Q]     [T]")
-  (def m (re-matcher #"(... ?)+"  "    [P]                 [Q]     [T]"))
-  (re-find m)
-
-  (partition 3 4 "    [P]                 [Q]     [T]")
-
-  (map (fn [coll]
-         (if (= \space (first coll))
-           nil
-           (second coll))) (partition 3 4 "    [P]                 [Q]     [T]"))
-
-  (split-lines sample)
-  (partition-by #(= "" %) (split-lines sample))
-  (let [[indexed-stack _  moves] (partition-by #(= "" %) (split-lines sample))
-        stack (butlast indexed-stack)]
-    ;;stack
-    moves)
-
-  (re-matches #"move (\d+) from (\d+) to (\d+)"  "move 1 from 2 to 8")
-  ;;
-  )
-
 (defn parse-move
   "Given *s* a move description, returns a coll of 3 int values where
    the first is the count of items to move, the second and thirst the 1 based index
@@ -86,31 +61,6 @@ move 1 from 1 to 2")
         (update ,,, (dec from) #(drop q %))
         (update ,,, (dec to)   #(into % to-move)))))
 
-(comment
-
-  (def st ['(\F \H \M \T \V \L \D)
-           '(\P \N \T \C \J \G \Q \H)
-           '(\H \P \M \D \S \R)
-           '(\F \V \B \L)
-           '(\T \M \Z \J \Q \L \D \R)])
-
-  (st 0)
-  ;; take 2 from top 
-  (drop 2 (st 0))
-  ;; put 2 on top
-  (into (st 1) '(:a :b))
-
-
-
-  (def v-move (take 2 (st 0)))
-  (update st 0 #(drop 2 %))
-  (update st 1 #(into % v-move))
-
-  (apply-single-move st [2 1 2])
-  ;;
-  )
-
-
 (defn apply-all-moves [stack-coll move-coll]
   (if (empty? move-coll)
     stack-coll
@@ -140,11 +90,47 @@ move 1 from 1 to 2")
   ;;=> HNSNMTLHQ
   )
 
-
-
 ;; part 2 -------------------------------------------------
 
-;;
-;;
+;; the ability to pick up and move multiple crates at once
+;; moved crates stay in the same order
+;; After the rearrangement procedure completes, what crate ends up on top of each stack?
 
 
+(defn apply-single-move-2 [stack-coll [q from to]]
+  (let [to-move (take q (stack-coll (dec from)))]
+    (-> stack-coll
+        (update ,,, (dec from) #(drop q %))
+        (update ,,, (dec to)   #(into % (reverse to-move)))))) ;; just reverse
+
+(defn apply-all-moves-2 [stack-coll move-coll]
+  (if (empty? move-coll)
+    stack-coll
+    (recur (apply-single-move-2 stack-coll (first move-coll))
+           (rest move-coll))))
+
+(defn solution-2 []
+  (let [lines                          (split-lines (slurp "./resources/puzzle_5.txt")
+                                                    )
+        [indexed-stack _  moves-lines] (partition-by #(= "" %) lines)
+        stack-coll                     (create-stack-coll (butlast indexed-stack))
+        move-coll                      (map parse-move moves-lines)]
+    (apply-all-moves-2 stack-coll move-coll)))
+
+(comment
+  
+  (solution-2)
+  ;;
+  ;; [(\R \B \S \M) 
+  ;; (\N \L)
+  ;;    (\L)
+  ;;      (\F \J \D \W)
+  ;;      (\D \G \H \G)
+  ;;      (\J \N \C \Z \H \P \R \F \G \M \M \R \R \W \H \D \P \D \L \P \Q \C)
+  ;;      (\M \V \L \G \T \M \L \B \L \Q \T \N \Q \Q)
+  ;;      (\C \H \H)
+  ;;      (\T \V)]
+  ;;
+  ;;=> RNLFDJMCT !!
+  ;;
+  )
