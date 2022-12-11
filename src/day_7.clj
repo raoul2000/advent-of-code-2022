@@ -37,25 +37,10 @@ $ ls
 (defn add-file-to-cur-dir [acc file-v]
   (update-in acc [:cur 1] conj file-v))
 
-(comment
-
-  (add-file-to-cur-dir {:cur ["/" []]
-                        :fs []}
-                       [3333 "new.xml"])
-  (add-file-to-cur-dir {:cur ["/path" [[1125 "file.txt"]]]
-                        :fs []}
-                       [3333 "new.xml"])
-  ;;
-  )
-
 (defn command? [s]
   (.startsWith s "$"))
 
-(comment
-  (command? "")
-  (command? "$ cd"))
-
-(defn cd-path 
+(defn cd-path
   "Given an absolute *path* and the arg of a cd command, returns
    the modified *path* value."
   [path cd-arg]
@@ -71,7 +56,6 @@ $ ls
     (str (when-not (= "/" path) path) "/" cd-arg)))
 
 (defn update-path-info [path-info-coll [path ls]]
-  (println path ls)
   (if (some #{path} (map first path-info-coll))
     (mapv (fn [[p l]]
             (if (= p path)
@@ -115,17 +99,6 @@ $ ls
         (println "command not supported")
         acc))))
 
-(comment
-
-  (->> (split-lines sample)
-
-       (map #(split % #" ")))
-  (re-matches #"\$ (.+) (.+)" "$ cd e")
-  (.startsWith "yddd" "y")
-
-  ;;
-  )
-
 (defn evaluate
   "Given a coll of lines, return a vector describing folders where the first
    item is the forlder name, and the second item is a vector of files or sub-folders
@@ -146,8 +119,7 @@ $ ls
   ;;
   )
 
-
-(defn descendants [path folders]
+(defn descendant-dirs [path folders]
   (->> folders
        (filter (fn [[p _]]
                  (or  (= p path)
@@ -158,7 +130,7 @@ $ ls
        (vector path)))
 
 (comment
-  (descendants "/a/e" (evaluate (split-lines sample)))
+  (descendant-dirs "/a/e" (evaluate (split-lines sample)))
   ;;
   )
 
@@ -168,21 +140,13 @@ $ ls
 (defn file-size [file-info]
   (Integer/parseInt (first (split file-info #" ")) 10))
 
-(comment
-  (Integer/parseInt (first (split "2265 d.e" #" ")) 10)
-  (remove dir? '("dir e" "29116 f" "2557 g" "62596 h.lst" "584 i"))
-  (map file-size (remove dir? '("dir e" "29116 f" "2557 g" "62596 h.lst" "584 i")))
-  ;;
-  )
-
 (defn solution-1 []
-  (let [eval-result (->> ;;sample
-                     (slurp "./resources/puzzle_7.txt")
-                     (split-lines)
-                     (evaluate))]
+  (let [eval-result (->> (slurp "./resources/puzzle_7.txt")
+                         (split-lines)
+                         (evaluate))]
     (->> eval-result
          (map first)                             ;; each path
-         (map #(descendants % eval-result))      ;; deep content
+         (map #(descendant-dirs % eval-result))  ;; deep content
          (map (fn [[path  info]]                 ;; total folder size
                 (vector path (->> info
                                   (remove dir?)
@@ -194,17 +158,47 @@ $ ls
          (apply +)                               ;; sum all
          )))
 
-
 (comment
   (solution-1)
   ;; => 1306611 !!
   )
 
 
-
 ;; part 2 -------------------------------------------------
 
-;;
-;;
+;; The total disk space available to the filesystem is 70000000
+;; you need unu Find the smallest directory that, if deleted, would free up 
+;; enough space on the filesystem to run the update. What is the total size of that directory?
 
-(defn solution-2 [])
+(defn total-size-by-folder
+  "returns a coll of 2 items vectors where the first item is the folder name
+   and the second is its total size (including sub-folders)"
+  []
+  (let [eval-result (->> ;;sample
+                     (slurp "./resources/puzzle_7.txt")
+                     (split-lines)
+                     (evaluate))]
+    (->> eval-result
+         (map first)                             ;; each path
+         (map #(descendant-dirs % eval-result))  ;; deep content
+         (map (fn [[path  info]]                 ;; total folder size
+                (vector path (->> info
+                                  (remove dir?)
+                                  (map file-size)
+                                  (apply +))))))))
+
+(def compx (comparator (fn [[_ x] [_ y]] (< x y))))
+
+(defn solution-2 []
+  (let [folder-size  (total-size-by-folder)
+        root-size    (second (first (filter #(= "/" (first %)) folder-size)))
+        unused-space (- 70000000 root-size)]
+    (->> (sort compx (total-size-by-folder))
+         (filter #(>=  (+ unused-space (second %)) 30000000))
+         (first)
+         (second))))
+
+(comment
+  (solution-2)
+  ;; => 13210366
+  )
