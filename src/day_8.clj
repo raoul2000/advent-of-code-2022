@@ -1,10 +1,7 @@
 (ns day-8
-  (:require [clojure.string :refer [split-lines split]]
-            [clojure.walk :refer [walk]]))
+  (:require [clojure.string :refer [split-lines]]))
 
 ;; https://adventofcode.com/2022/day/8
-
-;;
 
 (def sample "30373
 25512
@@ -13,12 +10,20 @@
 35390
 ")
 
-(defn sample->grid [s]
+;; the grid is represented as a vector of equal size vectors (a matrix)
+
+(defn sample->grid
+  "converts puzzle input into a vector of equal size vectors of int
+   values representing tree heights."
+  [s]
   (->> s
        (split-lines)
        (mapv #(mapv (fn [c] (Character/digit c 10)) %))))
 
-(defn count-edge-trees [grid]
+(defn count-edge-trees
+  "Given the tree heights grid, returns the number of unique
+   trees on the grid edge."
+  [grid]
   (+ (* 2 (count grid))
      (* 2 (- (count (first grid)) 2))))
 
@@ -36,35 +41,39 @@
   (get (into [] (for [idx (range 0 (grid-width grid))]
                   (get (get grid idx) x))) y))
 
-(defn split-around-idx [v idx]
+(defn split-around-idx
+  "Splits a vector into 2 sub vectors: one before and one after 
+   the item at index *idx*. Note that item at *idx* is not present
+   in neither returned sub vectors."
+  [v idx]
   (reduce-kv (fn [[start end :as acc] k v]
                (cond
                  (< k idx) [(conj start v) end]
                  (> k idx) [start (conj end v)]
                  :else acc)) [[] []] v))
 
-(defn inner-grid-xy [width height]
-  (for [x (range 1 (dec width))
-        y (range 1 (dec height))]
-    [x y]))
+(defn inner-grid-xy
+  "Given a grid, returns a seq of all x,y coordinates for all inner
+   trees in the grid."
+  [grid]
+  (let [width  (grid-width grid)
+        height (grid-height grid)]
+    (for [x (range 1 (dec width))
+          y (range 1 (dec height))]
+      [x y])))
 
+(defn visible?
+  "Returns TRUE if the height at position x,y in the *grid* is visible
+   from the outside, FALSE otherwise"
+  [[x y] grid]
+  (let [tree-height (get-xy grid x y)]
+    (when-not (zero? tree-height)
+      (let [[top bottom] (split-around-idx (get-coll x grid) y)
+            [left right] (split-around-idx (get-row  y grid) x)]
+        (some #(> tree-height (apply max %)) [top bottom left right])))))
 
-(comment
-
-  (def grid [[3 0 3 7 3]
-             [2 5 5 1 2]
-             [6 5 3 3 2]
-             [3 3 5 4 9]
-             [3 3 5 4 9]
-             [3 5 3 9 0]])
-
-  (defn visible? [[x y] grid]
-    (let [[top bottom] (split-around-idx (get-coll x grid) y)
-          [left right] (split-around-idx (get-row  y grid) x)
-          tree-height  (get-xy grid x y)]
-      (some (partial < tree-height) (concat top bottom left right))))
-
-  (loop [xy (inner-grid-xy 5 5)
+(defn count-inner-visible-trees [grid]
+  (loop [xy (inner-grid-xy grid)
          mx grid
          cnt 0]
     (if (empty? xy)
@@ -72,120 +81,21 @@
       (recur (rest xy)
              mx
              (if (visible? (first xy) grid)
-               (do
-                 (println "visible:" (first xy))
-                 (inc cnt)
-                 )
-               
-               cnt))))
+               (inc cnt)
+               cnt)))))
 
-  (apply into [1] [2 4 5] [:a :v])
-  (concat [1] [2 4 5] [:a :v])
-  (apply > [5 4 3 2 3 4])
-  (some (partial < 5) [1 2 3 6])
-
-  ;;
-  )
-
+(defn solution-1 []
+  (let [grid (sample->grid
+              ;;sample
+              (slurp "./resources/puzzle_8.txt"))]
+    (+ (count-edge-trees grid)
+       (count-inner-visible-trees grid))))
 
 (comment
-
-  (->> sample
-       (split-lines)
-       (mapv #(mapv (fn [c] (Character/digit c 10)) %)))
-
-  (def grid [[3 0 3 7 3]
-             [2 5 5 1 2]
-             [6 5 3 3 2]
-             [3 3 5 4 9]
-             [3 3 5 4 9]
-             [3 5 3 9 0]])
-  (def width (count (first grid)))
-  (def height (count  grid))
-  ;; start idx = width + 2
-  ;; len = width - 2
-
-
-  (grid-width  grid)
-  ;; ---------------------------------
-  ;; get col 1
-  (get (get grid 0) 1)
-  (get (get grid 1) 1)
-  (get (get grid 2) 1)
-  (get (get grid 3) 1)
-  (get (get grid 4) 1)
-  ;; get col 1
-  (for [idx (range 0 (inc width))]
-    (get (get grid idx) 1))
-  ;; get col 2
-  (for [idx (range 0 (inc width))]
-    (get (get grid idx) 2))
-  (map #(get % 2) grid)
-
-  ;; get coll x
-  (defn get-coll [x grid]
-    (let [width (count (first grid))]
-      (for [idx (range 0 (inc width))]
-        (get (get grid idx) x))))
-
-  (get-coll 0 grid)
-  (get-coll 1 grid)
-
-  ;; -----------------------------------
-  ;; get line 1
-  (get grid 1)
-  ;; get line 2
-  (get grid 2)
-  ;; get line 2
-  (get grid 2)
-  (defn get-row [y grid]
-    (get grid y))
-
-  (get-row 0 grid)
-  (get-row 1 grid)
-
-  ;; split a vector in 2 parts before and after idx
-
-  (defn split-by-idx [v idx]
-    (reduce-kv (fn [[start end :as acc] k v]
-                 (cond
-                   (< k idx) [(conj start v) end]
-                   (> k idx) [start (conj end v)]
-                   :else acc)) [[] []] v))
-
-  (split-by-idx [3 4 5 6 7]  3)
-  (split-by-idx [3 4 5 6 7]  1)
-
-  ;; get all (x,y) for inner grid
-  (defn inner-grid-xy [width height]
-    (for [x (range 1 (dec width))
-          y (range 1 (dec height))]
-      [x y]))
-
-  (inner-grid-xy 5 5)
-
-  ;; item at pos x=1 y=1
-  (get (into [] (for [idx (range 0 width)]
-                  (get (get grid idx) 1))) 1)
-
-  (defn get-xy [v x y]
-    (get (into [] (for [idx (range 0 width)]
-                    (get (get v idx) x))) y))
-  (get-xy grid 1 1)
-  (get-xy grid 2 1)
-  (get-xy grid 2 0)
-  (get-xy grid 3 1)
-  (get-xy grid 2 2)
-
+  (solution-1)
+  ;; => 1764 !!
   ;;
   )
-
-
-;; (slurp "./resources/puzzle_7.txt")
-(defn solution-1 [])
-
-(comment
-  (solution-1))
 
 
 ;; part 2 -------------------------------------------------
