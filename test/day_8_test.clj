@@ -69,13 +69,20 @@
     (is (= [[] [1 2 3]]
            (d/split-around-idx [1 2 3] -1)))))
 
-
 (deftest inner-grid-xy-test
   (testing "seq of x,y pos for inner grid"
     (is (= '([1 1] [1 2] [1 3] [2 1] [2 2] [2 3] [3 1] [3 2] [3 3])
-           (doall (d/inner-grid-xy 5 5))))
+           (doall (d/inner-grid-xy [[1 2 3 4 5]
+                                    [1 2 3 4 5]
+                                    [1 2 3 4 5]
+                                    [1 2 3 4 5]
+                                    [1 2 3 4 5]]))))
     (is (= '([1 1] [1 2] [1 3])
-           (doall (d/inner-grid-xy 3 5))))))
+           (doall (d/inner-grid-xy [[1 2 3]
+                                    [1 2 3]
+                                    [1 2 3]
+                                    [1 2 3]
+                                    [1 2 3]]))))))
 
 
 (deftest get-xy-test
@@ -100,3 +107,15 @@
     (is (nil? (d/get-xy [[1 2]] 2 2)))
     (is (nil? (d/get-xy [[1 2]] 0 2)))
     (is (nil? (d/get-xy [[1 2]] 2 0)))))
+
+(deftest count-visible-trees-test
+  (testing "Return viewing distance"
+    (is (= 4
+           (count-visible-trees 4 [2 3 2 4 3])))
+    (is (= 0
+           (count-visible-trees 4 [])))
+    (is (= 1
+           (count-visible-trees 4 [5 3 2])))
+    (is (= 5
+           (count-visible-trees 4 [1 3 2 2 2])))
+    ))

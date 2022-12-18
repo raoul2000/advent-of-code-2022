@@ -100,10 +100,46 @@
 
 ;; part 2 -------------------------------------------------
 
+;; To measure the viewing distance from a given tree, look up, down, left, and right from that tree; 
+;; stop if you reach an edge or at the first tree that is the same height or taller than the tree 
+;; under consideration. (If a tree is right on the edge, at least one of its viewing distances will 
+;; be zero.)
 
-(defn solution-2 [])
+(defn count-visible-trees [tree-height seq]
+  (reduce (fn [acc n]
+            (cond
+              (< n tree-height)  (inc acc)
+              (>= n tree-height) (reduced (inc acc))
+              :else acc)) 0 seq))
+
+(defn full-grid-xy
+  "Given a grid, returns a seq of all x,y coordinates for all trees in the grid."
+  [grid]
+  (let [width  (grid-width grid)
+        height (grid-height grid)]
+    (for [x (range 0  width)
+          y (range 0 height)]
+      [x y])))
+
+
+(defn scenic-score [grid [x y]]
+  (let [tree-height  (get-xy grid x y)
+        [top bottom] (split-around-idx (get-coll x grid) y)
+        [left right] (split-around-idx (get-row  y grid) x)]
+    (->> [(reverse top) bottom (reverse left) right]
+         (map #(count-visible-trees tree-height %))
+         (apply *))))
+
+(defn solution-2 []
+  (let [grid (sample->grid
+              ;;sample
+              (slurp "./resources/puzzle_8.txt")
+              )]
+    (->> (full-grid-xy grid)
+         (map #(scenic-score grid %))
+         (apply max))))
 
 (comment
   (solution-2)
-  ;; => 13210366
+  ;; => 199272 !!
   )
