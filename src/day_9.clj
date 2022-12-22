@@ -5,6 +5,10 @@
 
 ;; - part 1 -------------------------------------------
 
+;; all steps performed by the head will be also performed by the tail
+;; When the head moves in diagonal, it remains adjacent to the tailn so the
+;; tail does not move but 'remember' the move for later, 
+
 (def sample "R 4
 U 4
 L 3
@@ -37,16 +41,15 @@ R 2
     "L" [(dec x) y]
     "R" [(inc x) y]))
 
+
+(defn move-steps
+  "Given an *initial-pos* and a coll of steps, returns the updated pos
+   after steps are performed starting from *initial-pos*"
+  [initial-pos step-coll]
+  (reduce move-one-step initial-pos step-coll))
+
 (comment
-  (move-one-step [0 0] "U")
-  (loop [steps (input->steps sample)
-         cur-pos [0 0]
-         pos-history []]
-    (if (empty? steps)
-      pos-history
-      (recur (rest steps)
-             (move-one-step cur-pos (first steps))
-             (conj pos-history cur-pos))))
+  (move-steps [0 0] ["U" "D" "L" "R"])
   ;;
   )
 
@@ -67,8 +70,26 @@ R 2
   )
 
 (defn solution-1 []
-  (let [motions ;;sample
-        (slurp "./resources/puzzle_9.txt")
-        ;;
-        ]))
+  (loop [steps            (input->steps (slurp "./resources/puzzle_9.txt"))
+         head-pos         [0 0]
+         tail-pos         [0 0]
+         pending-steps    []
+         tail-pos-history []]
+    (if (empty? steps)
+      (count (into #{} tail-pos-history))
+      (let [step                             (first steps)
+            new-head-pos                      (move-one-step head-pos step)
+            [new-tail-pos new-pending-steps] (if-not (adjacent-pos? new-head-pos tail-pos)
+                                               [(move-steps tail-pos pending-steps) [step]]
+                                               [tail-pos (conj pending-steps step)])]
+        (recur (rest steps)
+               new-head-pos
+               new-tail-pos
+               new-pending-steps
+               (conj tail-pos-history new-tail-pos))))))
 
+(comment
+
+  (solution-1)
+  ;; => 6030 !!
+  )
