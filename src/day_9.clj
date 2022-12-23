@@ -93,3 +93,57 @@ R 2
   (solution-1)
   ;; => 6030 !!
   )
+
+;; ---- part 2 ------------------------------------------------
+
+;; Rather than two knots, you now must simulate a rope consisting of ten knots.
+;; Now, you need to keep track of the positions the new tail, 9, visits
+
+;; knots:
+;;   [ p1   h1]  [p2   h2] , ... ]
+;; [ [[0 0] []], [[0 0] []]]
+
+
+(comment
+
+  (def knot {:pos           [0 0]
+             :history       []
+             :pending-steps ["U" "U"]})
+
+  (defn move-knots [head-pos step knots-coll]
+    (let [new-head-pos (move-one-step head-pos step)]
+      (loop [prev-pos new-head-pos
+             knots knots-coll])))
+
+  (loop [knots         []
+         head-pos      [0 0]
+         updated-knots []]
+     (if (empty? knots)
+       updated-knots
+       (let [knot (first knots)]
+         (if (adjacent-pos? (:pos knot) head-pos)
+           [[] [] (into updated-knots knots)]
+           )
+         ))
+    
+    ))
+
+
+(defn solution-2 []
+  (loop [steps            (input->steps (slurp "./resources/puzzle_9.txt"))
+         head-pos         [0 0]
+         tail-pos         [0 0]
+         pending-steps    []
+         tail-pos-history []]
+    (if (empty? steps)
+      (count (into #{} tail-pos-history))
+      (let [step                             (first steps)
+            new-head-pos                      (move-one-step head-pos step)
+            [new-tail-pos new-pending-steps] (if-not (adjacent-pos? new-head-pos tail-pos)
+                                               [(move-steps tail-pos pending-steps) [step]]
+                                               [tail-pos (conj pending-steps step)])]
+        (recur (rest steps)
+               new-head-pos
+               new-tail-pos
+               new-pending-steps
+               (conj tail-pos-history new-tail-pos))))))
