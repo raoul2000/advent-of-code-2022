@@ -79,15 +79,19 @@ R 2
           ;; top right
           [1  2]  [(inc x1) (inc y1)]
           [2  1]  [(inc x1) (inc y1)]
+          [2  2]  [(inc x1) (inc y1)]
           ;; top left
-          [-1 2]  [(dec x1) (inc y1)]
-          [-2 1]  [(dec x1) (inc y1)]
+          [-1  2]  [(dec x1) (inc y1)]
+          [-2  1]  [(dec x1) (inc y1)]
+          [-2  2]  [(dec x1) (inc y1)]
           ;; bottom right
           [2 -1]  [(inc x1) (dec y1)]
           [1 -2]  [(inc x1) (dec y1)]
+          [2 -2]  [(inc x1) (dec y1)]
           ;; bottom left
           [-2 -1] [(dec x1) (dec y1)]
-          [-1 -2] [(dec x1) (dec y1)]} [dx dy])))
+          [-1 -2] [(dec x1) (dec y1)]
+          [-2 -2] [(dec x1) (dec y1)]} [dx dy])))
 
 (comment
 
@@ -99,7 +103,10 @@ R 2
 
 
 (defn solution-1 []
-  (loop [steps            (input->steps (slurp "./resources/puzzle_9.txt"))
+  (loop [steps            (input->steps
+                           ;;sample
+                           (slurp "./resources/puzzle_9.txt")
+                           )
          head-pos         [0 0]
          tail-pos         [0 0]
          tail-pos-history []]
@@ -125,8 +132,7 @@ R 2
 ;; Rather than two knots, you now must simulate a rope consisting of ten knots.
 ;; Now, you need to keep track of the positions the new tail, 9, visits
 
-
-(defn solution-2 [pos-coll]
+(defn next-knot-path [pos-coll]
   (loop [head-pos-coll pos-coll
          tail-pos-history [[0 0]]]
     (if (empty? head-pos-coll)
@@ -139,10 +145,18 @@ R 2
         (recur (rest head-pos-coll)
                (conj tail-pos-history new-tail-pos))))))
 
+(defn solution-2 []
+  (let [head-path (solution-1)]
+    (->> (iterate next-knot-path head-path)
+         (take 9)
+         (last)
+         (into #{})
+         (count))))
+
 
 
 (comment
-  
-  (solution-2 (solution-1))
-  ;;
+  (solution-2)
+  ;; => 25454 !!
+
   )
