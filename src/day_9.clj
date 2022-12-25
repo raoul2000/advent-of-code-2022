@@ -99,51 +99,101 @@ R 2
 ;; Rather than two knots, you now must simulate a rope consisting of ten knots.
 ;; Now, you need to keep track of the positions the new tail, 9, visits
 
-;; knots:
-;;   [ p1   h1]  [p2   h2] , ... ]
-;; [ [[0 0] []], [[0 0] []]]
+;; humm big problem
+;; the modelisation for part 1 seems to not be suitable to solve part 2 because it assumes
+;; that moves of the head are 'followed' by moves from the tail: the tail is always going
+;; to perform same steps to reach the head and this is not true in diagonal cases.
+;;
+;; from this state, assume next head steps are D R R R D
+;;
+;; . . . . .
+;; . . H T .
+;; . . . . .
+;; . . . . .
+;; . . . . .
+;;
+;; On the last move of the head (move 'D') the tail is going to performed cached steps
+;; to reach the head: L (from previous step) D R R R
+;;
+;; . . . . .
+;; . . X X .
+;; . . X X X
+;; . . . . H
+;; . . . . .
+;;
+;; the tail did reach the head, but these 5 steps are going to move all knots after T
+;; to do an extra turn when in fact it should not have been necessary
+;;
+;; What should have been done is this. Imagine a knots t, it wouldn't need to move at all
+;; . . . . .
+;; . . . X .
+;; . . . t X
+;; . . . . H
+;; . . . . .
+;;
+;; .. whereas with the implemented solution, t would have to perform some cached steps to reach
+;; T.
 
+;; so we must reconsider the way part 2 should be solved ... and possibly part 1 to :(
+;;
 
-(comment
+;; what follows is useless ...
 
-  (def knot {:pos           [0 0]
-             :history       []
-             :pending-steps ["U" "U"]})
-
-  (defn move-knots [head-pos step knots-coll]
-    (let [new-head-pos (move-one-step head-pos step)]
-      (loop [prev-pos new-head-pos
-             knots knots-coll])))
-
-  (loop [knots         []
-         head-pos      [0 0]
-         updated-knots []]
-     (if (empty? knots)
-       updated-knots
-       (let [knot (first knots)]
-         (if (adjacent-pos? (:pos knot) head-pos)
-           [[] [] (into updated-knots knots)]
-           )
-         ))
-    
-    ))
-
-
-(defn solution-2 []
-  (loop [steps            (input->steps (slurp "./resources/puzzle_9.txt"))
+(defn tail-moves [steps-coll]
+  (loop [steps            steps-coll
          head-pos         [0 0]
          tail-pos         [0 0]
          pending-steps    []
-         tail-pos-history []]
+         tail-pos-history []
+         tail-moves       []]
     (if (empty? steps)
-      (count (into #{} tail-pos-history))
+      ;;(count (into #{} tail-pos-history))
+      {:pos-coll       tail-pos-history
+       :uniq-pos-count (count (into #{} tail-pos-history))
+       :moves          (into [] (flatten tail-moves))}
       (let [step                             (first steps)
             new-head-pos                      (move-one-step head-pos step)
-            [new-tail-pos new-pending-steps] (if-not (adjacent-pos? new-head-pos tail-pos)
-                                               [(move-steps tail-pos pending-steps) [step]]
-                                               [tail-pos (conj pending-steps step)])]
+            [new-tail-pos new-pending-steps
+             new-tail-moves] (if-not (adjacent-pos? new-head-pos tail-pos)
+                               [(move-steps tail-pos pending-steps) [step] (conj tail-moves pending-steps)]
+                               [tail-pos (conj pending-steps step) tail-moves])]
         (recur (rest steps)
                new-head-pos
                new-tail-pos
                new-pending-steps
-               (conj tail-pos-history new-tail-pos))))))
+               (conj tail-pos-history new-tail-pos)
+               new-tail-moves)))))
+
+(comment
+
+  (tail-moves (input->steps sample))
+  
+  (tail-moves ["R" "R" "R" "R" "U" "U" "U" "U"])
+  (loop [steps (input->steps sample)
+         i     (range 1 10)
+         result []]
+    (if (empty? i)
+      result
+      (let [result (tail-moves steps)]
+        (println (:moves result))
+        (recur (:moves result)
+               (rest i)
+               result))))
+
+  ;;
+  )
+
+(defn solution-2 []
+  (tail-moves  (input->steps
+                sample
+              ;;(slurp "./resources/puzzle_9.txt")
+                )
+              ;;
+               ))
+
+
+
+(comment
+  (solution-2)
+  ;;
+  )
