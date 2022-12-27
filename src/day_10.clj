@@ -162,6 +162,8 @@ noop
 ")
 
 (defn input->instructions
+  "Converts string *s* into a vector of instructions represented as [command operand] pairs. 
+   Command with no operand (e.g. 'noop') have a *nil* operand."
   [s]
   (reduce (fn [acc instr]
             (let [[cmd maybe-operand] (split instr #" ")]
@@ -173,13 +175,19 @@ noop
   ;;
   )
 
-(defn instructions->cmd-per-cycle [instr-coll]
+(defn instructions->cmd-per-cycle
+  "Converts a vector of instructions into a vector of command per cycle where each
+   item is a function to apply to register X for a given cycle."
+  [instructions]
   (reduce (fn [acc [cmd operand]]
             (case cmd
               "addx" (into acc [identity (partial + operand)])
-              "noop" (conj acc identity))) [] instr-coll))
+              "noop" (conj acc identity))) [] instructions))
 
-(defn register-per-cycle [cmd-per-cycle]
+(defn register-per-cycle
+  "Apply a vector of command per cycle to register X and returns the value
+   of X for each cycle. Initial X value is 1."
+  [cmd-per-cycle]
   (loop [cmd-per-cycle cmd-per-cycle
          x-by-cycle [1]]
     (if (empty? cmd-per-cycle)
@@ -188,7 +196,7 @@ noop
              (conj x-by-cycle ((first cmd-per-cycle) (last x-by-cycle)))))))
 
 (defn solution-1 []
-  (let [x-per-cycle (->> (input->instructions 
+  (let [x-per-cycle (->> (input->instructions
                           ;;sample
                           (slurp "./resources/puzzle_10.txt")
                           ;;
@@ -210,11 +218,48 @@ noop
 
 ;; ---- part 2 ------------------------------------------------
 
+;; It seems like the X register controls the horizontal position of a sprite
+;; the sprite is 3 pixels wide, and the X register sets the horizontal position of the middle of that sprite
+;; The CRT draws a single pixel during each cycle
+;; If the sprite is positioned such that one of its three pixels is the pixel currently being drawn, the 
+;; screen produces a lit pixel (#); otherwise, the screen leaves the pixel dark (.)
 
-(defn solution-2 [])
+(defn overlap-pixel-pos? [px-pos x]
+  (let [sprite-pos (into #{} (range (dec px-pos) (+ 2 px-pos)))]
+    (sprite-pos x)))
+
+(comment
+  (overlap-pixel-pos? 1 2)
+  (overlap-pixel-pos? 1 0)
+  (overlap-pixel-pos? 1 3)
+  ;;
+  )
+
+
+(defn solution-2 []
+  (let [reg-x-per-row      (->> (input->instructions (slurp "./resources/puzzle_10.txt"))
+                                (instructions->cmd-per-cycle)
+                                (register-per-cycle)
+                                (partition 40))
+        pixel-pos-per-row   (repeat 6 (range 40))
+        regx-pxpos-per-row  (mapv vector reg-x-per-row pixel-pos-per-row)
+        crt-output          (map (fn [[x-coll px-pos-coll]]
+                                   (mapv (fn [x px]
+                                           (if (overlap-pixel-pos? px x) \X \space)) x-coll px-pos-coll))
+                                 regx-pxpos-per-row)]
+    (for [crt-row crt-output]
+      (println crt-row))))
 
 
 (comment
   (solution-2)
   ;;
+  ;; [X X X       X X     X X X     X     X   X X X X   X     X   X X X X       X X]
+  ;; [X     X   X     X   X     X   X   X     X         X   X     X               X]
+  ;; [X     X   X     X   X     X   X X       X X X     X X       X X X           X]
+  ;; [X X X     X X X X   X X X     X   X     X         X   X     X               X]
+  ;; [X         X     X   X         X   X     X         X   X     X         X     X]
+  ;; [X         X     X   X         X     X   X         X     X   X X X X     X X] 
   )
+
+
