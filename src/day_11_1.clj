@@ -1,4 +1,4 @@
-(ns day-11
+(ns day-11-1
   (:require [clojure.string :refer [split]]))
 
 ;; https://adventofcode.com/2022/day/11
